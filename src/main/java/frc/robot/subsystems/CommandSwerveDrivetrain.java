@@ -111,7 +111,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                     this));
 
     /* The SysId routine to test */
-    private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
+    private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineSteer;
 
     /**
      * Constructs a CTRE SwerveDrivetrain using the specified constants.
@@ -330,7 +330,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                     new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller
                                                     // for
                                                     // holonomic drive trains
-                            new PIDConstants(5.0, 0.0, 0.0), // Translation PID constants
+                            new PIDConstants(7.77, 0.0, 0.0), // Translation PID constants
                             new PIDConstants(5.0, 0.0, 0.0) // Rotation PID constants
                     ),
                     config, // The robot configuration

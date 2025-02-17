@@ -9,6 +9,8 @@ import static edu.wpi.first.units.Units.*;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -44,45 +46,47 @@ public class RobotContainer {
 
     public RobotContainer() {
         // COPYRTESS
-        autoChooser = AutoBuilder.buildAutoChooser("Tests");
-        SmartDashboard.putData("Auto Mode", autoChooser);
-
-        configureBindings();
-
-        // COPYRTESS
         drivetrain.configureAutoBuilder();
+        // COPYRTESS
+        autoChooser = AutoBuilder.buildAutoChooser("3mPath");
+        autoChooser.addOption("3mAuto", getAutonomousCommand());
+        SmartDashboard.putData("Auto Mode", new PathPlannerAuto("1mAuto"));
+        SmartDashboard.putData("Auto Mode", new PathPlannerAuto("3mPath"));
+        
+        configureBindings();
+        
     }
-
+    
     private void configureBindings() {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
         drivetrain.setDefaultCommand(
             // Drivetrain will execute this command periodically
             drivetrain.applyRequest(() ->
-                drive.withVelocityX(-joystick.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
-                    .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
-                    .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+            drive.withVelocityX(-joystick.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
+            .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
+            .withRotationalRate(-joystick.getRawAxis(2) * MaxAngularRate) // Drive counterclockwise with negative X (left)
             )
-        );
-
-        joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-        joystick.b().whileTrue(drivetrain.applyRequest(() ->
+            );
+            
+            joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
+            joystick.b().whileTrue(drivetrain.applyRequest(() ->
             point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
-        ));
-
-        // Run SysId routines when holding back/start and X/Y.
-        // Note that each routine should be run exactly once in a single log.
-        joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-        joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-        joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-        joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
-
-        // reset the field-centric heading on left bumper press
-        joystick.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
-
-        joystick.rightTrigger().whileTrue(drivetrain.applyRequest(() -> driveAngle.withVelocityX(-joystick.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
-        .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
-        .withTargetDirection(new Rotation2d(Math.toRadians(45))))); // Drive counterclockwise with negative X (left)))
+            ));
+            
+            // Run SysId routines when holding back/start and X/Y.
+            // Note that each routine should be run exactly once in a single log.
+            joystick.button(1).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
+            joystick.button(2).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
+            joystick.button(3).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
+            joystick.button(4).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
+            
+            // reset the field-centric heading on left bumper press
+            joystick.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
+            
+            joystick.rightTrigger().whileTrue(drivetrain.applyRequest(() -> driveAngle.withVelocityX(-joystick.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
+            .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
+            .withTargetDirection(new Rotation2d(Math.toRadians(45))))); // Drive counterclockwise with negative X (left)))
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }
