@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.security.PublicKey;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
@@ -15,19 +16,22 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-
+import frc.robot.LimelightHelpers;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
+import frc.robot.util.LogUtil;
 
 /**
  * Class that extends the Phoenix 6 SwerveDrivetrain class and implements
@@ -52,6 +56,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     // COPYRTESS
     private final SwerveRequest.ApplyRobotSpeeds m_pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
+
+    public Field2d m_field = new Field2d();
     /*
      * SysId routine for characterizing translation. This is used to find PID gains
      * for the drive motors.
@@ -245,6 +251,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
          * This ensures driving behavior doesn't change until an explicit disable event
          * occurs during testing.
          */
+
+        updatePoseFromVision();
+        LogUtil.recordPose2d("Robot Pose w/ Limelight", this.getState().Pose);
+
         if (!m_hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
             DriverStation.getAlliance().ifPresent(allianceColor -> {
                 setOperatorPerspectiveForward(
@@ -311,6 +321,33 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             Matrix<N3, N1> visionMeasurementStdDevs) {
         super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds),
                 visionMeasurementStdDevs);
+    }
+
+    public void updatePoseFromVision() {
+        boolean doRejectUpdate = false;
+        LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-front");
+
+        if (mt1.tagCount == 1 && mt1.rawFiducials.length == 1) {
+            if (mt1.rawFiducials[0].ambiguity > .7) {
+                doRejectUpdate = true;
+            }
+            if (mt1.rawFiducials[0].distToCamera > 3) {
+                doRejectUpdate = true;
+            }
+        }
+        if (mt1.tagCount == 0) {
+            doRejectUpdate = true;
+        }
+
+        if (!doRejectUpdate) {
+            LogUtil.recordPose2d("Limelight Pose", mt1.pose);
+            addVisionMeasurement(
+                    mt1.pose,
+                    mt1.timestampSeconds,
+                    VecBuilder.fill(.5, .5, 9999999));
+        }
+
+
     }
 
     // COPYRTESS
